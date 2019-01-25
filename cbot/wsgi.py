@@ -15,6 +15,3 @@ os.environ.setdefault("DJANGO_SETTINGS_MODULE", "cbot.settings")
 
 application = get_wsgi_application()
 
-
-from whitenose.django import DjangoWhiteNoise
-application = DjangoWhiteNoise(application)
