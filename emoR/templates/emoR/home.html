@@ -1,0 +1,170 @@
+{% block content %}
+<!DOCTYPE html>
+<html>
+<head>
+	<title>Home</title>
+	<style type="text/css">
+		#ifr {
+			margin-left: 840px;
+			margin-top: -350px
+		}
+	</style>
+
+</head>
+<body>
+
+	<div id="my_camera"></div>
+<form>
+  <input type=button class="btn btn-primary" value="Take Snapshot" onClick="take_snapshot()">
+</form>
+
+<canvas id="viewport" width="320" height="240"></canvas>
+
+<div>Your results will appear below:
+  <pre id="results">
+</pre>
+</div>
+
+<div id="message">
+	<div id="mood"></div>
+	
+</div>
+
+
+<div id="ifr">
+	<iframe width="350" height="430" allow="microphone;" src="https://console.dialogflow.com/api-client/demo/embedded/54eceb6d-5981-4158-8d8a-ec7859be725b"></iframe>	
+</div>
+
+
+<script type="text/javascript" src="https://pixlcore.com/demos/webcamjs/webcam.min.js"></script>
+<script type="text/javascript" src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css"></script>
+<script type="text/javascript" src="https://code.jquery.com/jquery-3.2.1.min.js"></script>
+<script type="text/javascript">
+
+	var messages = []
+
+	
+Webcam.set({
+  width: 320,
+  height: 240,
+  image_format: 'jpeg',
+  jpeg_quality: 90
+});
+Webcam.attach('#my_camera');
+
+var canvas = document.getElementById('viewport'),
+  context = canvas.getContext('2d');
+
+function take_snapshot() {
+  // take snapshot and get image data
+  Webcam.snap(function(data_uri) {
+    base_image = new Image();
+    base_image.src = data_uri;
+    base_image.onload = function() {
+      context.drawImage(base_image, 0, 0, 320, 240);
+
+      let data = canvas.toDataURL('image/jpeg');
+
+      fetch(data)
+        .then(res => res.blob())
+        .then(blobData => {
+          $.post({
+              url: "https://westcentralus.api.cognitive.microsoft.com/face/v1.0/detect?returnFaceId=true&returnFaceLandmarks=false&returnFaceAttributes=emotion",
+              contentType: "application/octet-stream",
+              headers: {
+                'Ocp-Apim-Subscription-Key': '4e62d6b195e342769c52f11309e6d71d'
+              },
+              processData: false,
+              data: blobData
+            })
+            .done(function(data) {
+
+            	var sad = ["RBumgq5yVrA","bo_efYhYU2A","RgKAFK5djSk","hLQl3WQQoQ0", "sJXZ9Dok7u8", "YQHsXMglC9A","qN4ooNx77u0", "iWZmdoY1aTE", "ekzHIouo8Q4"]
+            	var happy = ["aJOTlE1K90k", "ft4jcPSLJfY", "k2qgadSvNyU", "JGwWNGJdvx8", "FM7MFYoylVs", "zDo0H8Fm7d0", "dT2owtxkU8k", "PMivT7MJ41M", "qPTfXwPf_HM"]
+
+            	var max = 4
+
+            	var random = Math.floor(Math.random() * Math.floor(max))
+            	console.log(random)
+
+            	var output = data[0].faceAttributes.emotion
+            	var value = output.anger
+            	var temp_key = '';
+
+            	for(var key in output){
+                	if(output[key] > value){
+                    	value = output[key]
+                    	temp_key = key;
+                	}
+            	}
+
+
+            	console.log(temp_key+ ' '+ value)
+            	alert('You seems '+ temp_key)
+
+            	document.getElementById('mood').innterHTML = temp_key;
+
+            	//messages.push("----------");
+
+            	if (temp_key == "neutral"){
+
+            		var i
+            		//var txt = sad[random] + '\n'
+            		//messages.push("You seems neutral");
+
+            		for(i = random; i < random + 5; ++i){
+                		//txt = txt + sad[i] + '\n';
+                		messages.push(sad[i]);
+                	}
+                	//$("#results").text(txt);
+            	}
+
+            	else if (temp_key == "happiness"){
+            		var i
+            		//var txt = happy[random] + '\n'
+
+            		for(i = random ; i < random + 5; ++i){
+                		//txt = txt + happy[i] + '\n';
+                		messages.push(happy[i]);
+                	}
+                	//$("#results").text(txt);
+
+            	}
+            	else {
+            		//$("#results").text("Not found");
+            		messages.push("Can't get your mood");
+
+            	}
+
+            	//console.log(messages)
+
+
+            	for(var i = 0; i < messages.length; ++i){
+            		var a = document.createElement('a');
+            		a.href = 'https://www.youtube.com/watch?v=' + messages[i];
+            		a.target = '_blank';
+            		a.appendChild(document.createTextNode(a.href));
+            		document.getElementById('message').appendChild(a);
+            		document.getElementById('message').appendChild(document.createElement('br'));
+            		document.getElementById('message').appendChild(document.createElement('br'));
+            	}
+
+            	messages = []
+
+
+            	
+            })
+            .fail(function(err) {
+              $("#results").text(JSON.stringify(err));
+            })
+        });
+    }
+  });
+};
+
+
+</script>
+
+</body>
+</html>
+{% endblock %}
